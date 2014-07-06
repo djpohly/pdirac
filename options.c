@@ -8,26 +8,31 @@
 
 #include "options.h"
 
-void usage(char *fname)
+void print_usage(char *fname)
 {
-	printf("%s -{options} -f <infile> {<infile2> <infile3> ...}\n", fname);
-	printf(" <infile> must be in AIFF format\n\n");
-	printf(" options\n");
-	printf("   -L     <int>          : Lambda value (0-6). This sets Dirac's lambda parameter\n");
-	printf("                           default=0 (preview)\n");
-	printf("   -Q     <int>          : Quality (0-3), with higher values being slower and better\n");
-	printf("                           default=0 (preview)\n");
-	printf("   -T     <long double>  : Time stretch factor\n");
-	printf("                           default=1.0 (no change)\n");
-	printf("   -B     <long double>  : BPM (inverse time) stretch factor\n");
-	printf("                           default=1.0 (no change)\n");
-	printf("   -P     <long double>  : Pitch shift factor\n");
-	printf("                           default=1.0 (no change)\n");
-	printf("   -F     <long double>  : Formant shift factor\n");
-	printf("                           default=1.0 (no change)\n");
-	printf("   -f     <string>       : Path to input file(s),\n");
-	printf("\n");
-	printf("   -h                    : print this message.\n\n");
+	fprintf(stderr,
+		"Usage: %s [OPTION]... RATE CHANNELS\n"
+		"Reads raw audio data from standard input, applies Dirac processing, and\n"
+		"writes the result to standard output.  Input must be interleaved 32-bit\n"
+		"float PCM in host endianness.\n"
+		"\n"
+		"Dirac options:\n"
+		"  -l, --lambda=INT        Lambda value (0-%d).  Default is 0 (preview).\n"
+		"  -q, --quality=INT       Quality (0-%d), with higher values being\n"
+		"                          slower and better.  Default is 0 (preview).\n"
+		"  -t, --time=FACTOR       Time stretch factor\n"
+		"  -b, --bpm=FACTOR        BPM stretch factor (inverse of time)\n"
+		"  -p, --pitch=FACTOR      Pitch shift factor\n"
+		"  -f, --formant=FACTOR    Formant shift factor\n"
+		"  -h, --help              Show usage\n"
+		"\n"
+		"Factors may be expressed as a multiplier, a fraction, a ratio, or a\n"
+		"percentage change.  Pitch shifts may also be specified as a number of\n"
+		"semitones.  For example, the following are all equivalent:\n"
+		"  0.5   1/2   2:1   -50%%   -12s\n",
+		fname,
+		kDiracPropertyNumLambdas - kDiracLambdaPreview - 1,
+		kDiracPropertyNumQualities - kDiracQualityPreview - 1);
 }
 
 static int parse_enum(char *desc, char *str, long *out, long max)
@@ -124,7 +129,7 @@ static int parse_ratio(char *desc, char *str, long double *out, int allow_semi)
 	return 0;
 }
 
-int parse_options(int argc, char **argv, struct opts opt)
+int parse_options(int argc, char **argv, struct opts *opt)
 {
 	static struct option longopts[] = {
 		// Dirac parameters
@@ -135,46 +140,44 @@ int parse_options(int argc, char **argv, struct opts opt)
 		{"lambda",	required_argument,	NULL,	'L'},
 		{"quality",	required_argument,	NULL,	'Q'},
 
-		// Input parameters
-		{"rate",	required_argument,	NULL,	'r'},
-		{"channels",	required_argument,	NULL,	'c'},
+		// Other options
+		{"help",	no_argument,	NULL,	'h'},
 	};
 
 	int c, idx;
 	char *end;
-	while ((c = getopt_long(argc, argv, "r:c:L:Q:T:B:P:F:", longopts, &idx)) >= 0) {
+	while ((c = getopt_long(argc, argv, "l:q:t:b:p:f:h", longopts, &idx)) >= 0) {
 		switch (c) {
-			case 'T':
-				if (parse_ratio("Time factor", optarg, &opt.time, 0))
+			case 't':
+				if (parse_ratio("Time factor", optarg, &opt->time, 0))
 					return 1;
 				break;
-			case 'B':
-				if (parse_ratio("BPM factor", optarg, &opt.time, 0))
+			case 'b':
+				if (parse_ratio("BPM factor", optarg, &opt->time, 0))
 					return 1;
-				opt.time = 1 / opt.time;
+				opt->time = 1 / opt->time;
 				break;
-			case 'P':
-				if (parse_ratio("Pitch factor", optarg, &opt.pitch, 1))
-					return 1;
-				break;
-			case 'F':
-				if (parse_ratio("Formant factor", optarg, &opt.formant, 0))
+			case 'p':
+				if (parse_ratio("Pitch factor", optarg, &opt->pitch, 1))
 					return 1;
 				break;
-			case 'L':
-				if (parse_enum("Lambda", optarg, &opt.lambda,
+			case 'f':
+				if (parse_ratio("Formant factor", optarg, &opt->formant, 0))
+					return 1;
+				break;
+			case 'l':
+				if (parse_enum("Lambda", optarg, &opt->lambda,
 							kDiracPropertyNumLambdas - kDiracLambdaPreview - 1))
 					return 1;
 				break;
-			case 'Q':
-				if (parse_enum("Quality", optarg, &opt.quality,
+			case 'q':
+				if (parse_enum("Quality", optarg, &opt->quality,
 							kDiracPropertyNumQualities - kDiracQualityPreview - 1))
 					return 1;
 				break;
-			case 'r':
-				break;
-			case 'c':
-				break;
+			case 'h':
+				print_usage(argv[0]);
+				return 2;
 		}
 	}
 

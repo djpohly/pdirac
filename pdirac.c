@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <Dirac.h>
 
+#include "options.h"
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -37,6 +38,15 @@ long myReadData(float **chdata, long numFrames, void *userData)
 
 int main (int argc, char **argv)
 {
+	struct opts opt;
+
+	switch (parse_options(argc, argv, &opt)) {
+		case 1:
+			return 1;
+		case 2:
+			return 0;
+	}
+
 	float sr = 96000.0;
 
 	void *dirac = DiracCreate(kDiracLambdaPreview+3, kDiracQualityPreview+3, 8, sr, &myReadData, NULL);

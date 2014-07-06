@@ -12,6 +12,6 @@ struct opts {
 };
 
 void usage(char *fname);
-int parse_options(int argc, char **argv, struct opts opt);
+int parse_options(int argc, char **argv, struct opts *opt);
 
 #endif
