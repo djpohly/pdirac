@@ -16,7 +16,7 @@
  The read requests are *always* consecutive, ie. the routine will never have to supply data out
  of order.
  */
-long myReadData(float **chdata, long numFrames, void *userData)
+long myReadData(float *chdata, long numFrames, void *userData)
 {
 	return 1;
 }
@@ -56,7 +56,7 @@ int main (int argc, char **argv)
 			opt.lambda, opt.quality,
 			opt.channels, opt.rate);
 
-	void *dirac = DiracCreate(kDiracLambdaPreview + opt.lambda,
+	void *dirac = DiracCreateInterleaved(kDiracLambdaPreview + opt.lambda,
 			kDiracQualityPreview + opt.quality,
 			opt.channels, opt.rate, &myReadData, NULL);
 	if (!dirac) {
