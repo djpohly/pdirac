@@ -10,7 +10,6 @@
 #include "options.h"
 
 
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 /*
  This is the callback function that supplies data from the input stream/file(s) whenever needed.
  It should be implemented in your software by a routine that gets data from the input/buffers.
@@ -19,22 +18,8 @@
  */
 long myReadData(float **chdata, long numFrames, void *userData)
 {
-
 	return 1;
-
 }
-
-
-
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-/*
- Creates an output path from a given input path using the specified file name prefix
- */
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-/*
- Prints usage and CLI parameters to stdout.
- */
 
 int main (int argc, char **argv)
 {
