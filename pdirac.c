@@ -22,6 +22,11 @@ static long read_callback(float *chdata, long numFrames, void *userData)
 	return 0;
 }
 
+static int do_processing(void *dirac, struct opts *opt)
+{
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	// Set up default options
@@ -72,8 +77,10 @@ int main(int argc, char **argv)
 	DiracSetProperty(kDiracPropertyFormantFactor, opt.formant, dirac);
 	DiracPrintSettings(dirac);
 
+	int ret = do_processing(dirac, &opt);
+
 	// Clean up DIRAC instance
 	DiracDestroy(dirac);
 
-	return 0;
+	return ret;
 }
