@@ -56,7 +56,26 @@ static int parse_int(char *str, long *out, long max)
 	return 0;
 }
 
-static int parse_float(char *str, long double *out)
+static int parse_float(char *str, float *out)
+{
+	// Make sure str is not NULL or empty
+	if (!str || !*str)
+		return 1;
+
+	// Convert input
+	char *end;
+	float temp = strtof(str, &end);
+
+	// Make sure we consumed at least one character and that there are no
+	// more characters left
+	if (end == str || *end)
+		return 1;
+
+	*out = temp;
+	return 0;
+}
+
+static int parse_ldouble(char *str, long double *out)
 {
 	// Make sure str is not NULL or empty
 	if (!str || !*str)
@@ -98,13 +117,13 @@ static int parse_ratio(char *str, long double *out, int allow_semi)
 			break;
 		case '/':
 			// Fraction
-			if (parse_float(end + 1, &temp2))
+			if (parse_ldouble(end + 1, &temp2))
 				return 1;
 			temp /= temp2;
 			break;
 		case ':':
 			// Ratio
-			if (parse_float(end + 1, &temp2))
+			if (parse_ldouble(end + 1, &temp2))
 				return 1;
 			temp = temp2 / temp;
 			break;
@@ -212,18 +231,33 @@ int parse_options(int argc, char **argv, struct opts *opt)
 	}
 end_of_options:
 
-	switch (argc - optind) {
-		case 0:
-			fprintf(stderr, "%s: missing sample rate and channels\n", fname);
-			return 1;
-		case 1:
-			fprintf(stderr, "%s: missing channels\n", fname);
-			return 1;
-		case 2:
-			break;
-		default:
-			fprintf(stderr, "%s: too many arguments\n", fname);
-			return 1;
+	if (optind >= argc) {
+		fprintf(stderr, "%s: missing sample rate and channels\n", fname);
+		return 1;
+	}
+
+	if (parse_float(argv[optind], &opt->rate)) {
+		fprintf(stderr, "%s: invalid sample rate '%s'\n", fname,
+				argv[optind]);
+		return 1;
+	}
+	optind++;
+
+	if (optind >= argc) {
+		fprintf(stderr, "%s: missing channels\n", fname);
+		return 1;
+	}
+
+	if (parse_int(argv[optind], &opt->channels, -1)) {
+		fprintf(stderr, "%s: invalid number of channels '%s'\n", fname,
+				argv[optind]);
+		return 1;
+	}
+	optind++;
+
+	if (optind < argc) {
+		fprintf(stderr, "%s: too many arguments\n", fname);
+		return 1;
 	}
 
 	return 0;
