@@ -57,6 +57,7 @@ int main(int argc, char **argv)
 			opt.lambda, opt.quality,
 			opt.channels, opt.rate);
 
+	// Create DIRAC instance
 	void *dirac = DiracCreateInterleaved(kDiracLambdaPreview + opt.lambda,
 			kDiracQualityPreview + opt.quality,
 			opt.channels, opt.rate, &read_callback, NULL);
@@ -65,6 +66,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	// Set up DIRAC from command-line options
+	DiracSetProperty(kDiracPropertyTimeFactor, opt.time, dirac);
+	DiracSetProperty(kDiracPropertyPitchFactor, opt.pitch, dirac);
+	DiracSetProperty(kDiracPropertyFormantFactor, opt.formant, dirac);
+	DiracPrintSettings(dirac);
+
+	// Clean up DIRAC instance
 	DiracDestroy(dirac);
 
 	return 0;
