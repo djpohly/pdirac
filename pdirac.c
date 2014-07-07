@@ -38,25 +38,48 @@ long myReadData(float **chdata, long numFrames, void *userData)
 
 int main (int argc, char **argv)
 {
-	struct opts opt;
+	// Set up default options
+	struct opts opt = {
+		.time = 1,
+		.pitch = 1,
+		.formant = 1,
+		.lambda = 0,
+		.quality = 0,
+		.channels = 1,
+		.rate = 48000,
+	};
 
 	switch (parse_options(argc, argv, &opt)) {
 		case 1:
+			fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
 			return 1;
 		case 2:
+			// Special return value if -h/--help was given
 			return 0;
 	}
 
-	float sr = 96000.0;
+	fprintf(stderr,
+			"-- DIRAC options --\n"
+			"Time shift\t%Lf\n"
+			"Pitch shift\t%Lf\n"
+			"Formant shift\t%Lf\n"
+			"Lambda setting\t%ld\n"
+			"Quality setting\t%ld\n"
+			"Channels\t%ld\n"
+			"Sample rate\t%lf\n",
+			opt.time, opt.pitch, opt.formant,
+			opt.lambda, opt.quality,
+			opt.channels, opt.rate);
 
-	void *dirac = DiracCreate(kDiracLambdaPreview+3, kDiracQualityPreview+3, 8, sr, &myReadData, NULL);
+	void *dirac = DiracCreate(kDiracLambdaPreview + opt.lambda,
+			kDiracQualityPreview + opt.quality,
+			opt.channels, opt.rate, &myReadData, NULL);
 	if (!dirac) {
-		printf("!! ERROR !!\n\n\tCould not create DIRAC instance\n\tCheck number of channels and sample rate!\n");
-		exit(-1);
+		fprintf(stderr, "%s: could not create DIRAC instance\n", argv[0]);
+		return 1;
 	}
 
 	DiracDestroy(dirac);
-
 
 	return 0;
 }

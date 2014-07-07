@@ -1,4 +1,5 @@
 BINS = pdirac ffdirac foo
+OBJS = options.o
 
 DIRAC_BINS = pdirac foo
 FFMPEG_BINS = ffdirac
@@ -18,6 +19,6 @@ install: all
 	install -t $(DESTDIR)/usr/bin/ffdirac $(BINS)
 
 clean:
-	$(RM) $(BINS)
+	$(RM) $(BINS) $(OBJS)
 
 pdirac: options.o

@@ -8,9 +8,11 @@
 
 #include "options.h"
 
-void print_usage(char *fname)
+static char *fname;
+
+static void print_usage()
 {
-	fprintf(stderr,
+	printf(
 		"Usage: %s [OPTION]... RATE CHANNELS\n"
 		"Reads raw audio data from standard input, applies Dirac processing, and\n"
 		"writes the result to standard output.  Input must be interleaved 32-bit\n"
@@ -35,93 +37,94 @@ void print_usage(char *fname)
 		kDiracPropertyNumQualities - kDiracQualityPreview - 1);
 }
 
-static int parse_enum(char *desc, char *str, long *out, long max)
+static int parse_int(char *str, long *out, long max)
 {
-	if (!*str) {
-		fprintf(stderr, "%s: empty argument\n", desc);
+	// Make sure str is not NULL or empty
+	if (!str || !*str)
 		return 1;
-	}
 
+	// Convert input
 	char *end;
 	long temp = strtol(str, &end, 10);
-	if (*end) {
-		fprintf(stderr, "%s: `%s' is not an integer\n", desc, str);
-		return 1;
-	}
-	if (temp < 0 || temp > max) {
-		fprintf(stderr, "%s: `%s' is not between 0 and %ld\n", desc, str, max);
-		return 1;
-	}
 
-	return 0;
-}
-
-static int parse_float(char *str, long double *out)
-{
-	if (!*str)
-		return 1;
-
-	char *end;
-	long double temp = strtold(str, &end);
-	if (*end)
+	// Make sure we consumed at least one character, that there are no
+	// characters left, and that the value is in range
+	if (end == str || *end || temp < 0 || (max > 0 && temp > max))
 		return 1;
 
 	*out = temp;
 	return 0;
 }
 
-static int parse_ratio(char *desc, char *str, long double *out, int allow_semi)
+static int parse_float(char *str, long double *out)
 {
-	if (!*str) {
-		fprintf(stderr, "%s: empty argument\n", desc);
+	// Make sure str is not NULL or empty
+	if (!str || !*str)
 		return 1;
-	}
 
+	// Convert input
 	char *end;
 	long double temp = strtold(str, &end);
+
+	// Make sure we consumed at least one character and that there are no
+	// more characters left
+	if (end == str || *end)
+		return 1;
+
+	*out = temp;
+	return 0;
+}
+
+static int parse_ratio(char *str, long double *out, int allow_semi)
+{
+	// Make sure str is not NULL or empty
+	if (!str || !*str)
+		return 1;
+
+	// Convert first part of input
+	char *end;
+	long double temp = strtold(str, &end);
+
+	// Make sure we consumed at least one character
+	if (end == str)
+		return 1;
+
+	// Parse argument according to factor/fraction/ratio/percent/semitone
+	// formats
 	long double temp2;
 	switch (*end) {
 		case '\0':
+			// Factor
 			break;
 		case '/':
-			if (parse_float(end + 1, &temp2)) {
-				fprintf(stderr, "%s: `%s' is not a valid fraction\n",
-						desc, str);
+			// Fraction
+			if (parse_float(end + 1, &temp2))
 				return 1;
-			}
 			temp /= temp2;
 			break;
 		case ':':
-			if (parse_float(end + 1, &temp2)) {
-				fprintf(stderr, "%s: `%s' is not a valid ratio\n",
-						desc, str);
+			// Ratio
+			if (parse_float(end + 1, &temp2))
 				return 1;
-			}
 			temp = temp2 / temp;
 			break;
 		case '%':
-			if (*(end + 1)) {
-				fprintf(stderr, "%s, `%s' is not a valid percentage\n",
-						desc, str);
+			// Percent change
+			if (*(end + 1))
 				return 1;
-			}
 			temp += 100;
 			temp /= 100;
 			break;
 		case 's':
+			// Semitone change (if allowed)
 			if (allow_semi) {
-				if (*(end + 1)) {
-					fprintf(stderr, "%s, `%s' is not a valid semitone value\n",
-							desc, str);
+				if (*(end + 1))
 					return 1;
-				}
 				temp = pow(2, temp / 12);
 				break;
 			}
 			// else fall through
 		default:
-			fprintf(stderr, "%s: `%s' is not a valid argument\n",
-					desc, str);
 			return 1;
 	}
 
@@ -131,54 +134,96 @@ static int parse_ratio(char *desc, char *str, long double *out, int allow_semi)
 
 int parse_options(int argc, char **argv, struct opts *opt)
 {
+	int ret = 0;
+
+	// Save executable name for error messages
+	fname = argv[0];
+
+	// Declare long options for getopt_long
 	static struct option longopts[] = {
 		// Dirac parameters
-		{"time",	required_argument,	NULL,	'T'},
-		{"bpm",		required_argument,	NULL,	'B'},
-		{"pitch",	required_argument,	NULL,	'P'},
-		{"formant",	required_argument,	NULL,	'F'},
-		{"lambda",	required_argument,	NULL,	'L'},
-		{"quality",	required_argument,	NULL,	'Q'},
+		{"time",	required_argument,	NULL,	't'},
+		{"bpm",		required_argument,	NULL,	'b'},
+		{"pitch",	required_argument,	NULL,	'p'},
+		{"formant",	required_argument,	NULL,	'f'},
+		{"lambda",	required_argument,	NULL,	'l'},
+		{"quality",	required_argument,	NULL,	'q'},
 
 		// Other options
 		{"help",	no_argument,	NULL,	'h'},
 	};
 
-	int c, idx;
+	// Process options
 	char *end;
-	while ((c = getopt_long(argc, argv, "l:q:t:b:p:f:h", longopts, &idx)) >= 0) {
+	for (;;) {
+		int idx = -1;
+		int c = getopt_long(argc, argv, "l:q:t:b:p:f:h", longopts, &idx);
+		if (c < 0)
+			break;
 		switch (c) {
 			case 't':
-				if (parse_ratio("Time factor", optarg, &opt->time, 0))
-					return 1;
+				// Time factor
+				ret = parse_ratio(optarg, &opt->time, 0);
 				break;
 			case 'b':
-				if (parse_ratio("BPM factor", optarg, &opt->time, 0))
-					return 1;
-				opt->time = 1 / opt->time;
+				// BPM factor (inverse of time factor)
+				ret = parse_ratio(optarg, &opt->time, 0);
+				if (!ret)
+					opt->time = 1 / opt->time;
 				break;
 			case 'p':
-				if (parse_ratio("Pitch factor", optarg, &opt->pitch, 1))
-					return 1;
+				// Pitch factor
+				ret = parse_ratio(optarg, &opt->pitch, 1);
 				break;
 			case 'f':
-				if (parse_ratio("Formant factor", optarg, &opt->formant, 0))
-					return 1;
+				// Formant factor
+				ret = parse_ratio(optarg, &opt->formant, 0);
 				break;
 			case 'l':
-				if (parse_enum("Lambda", optarg, &opt->lambda,
-							kDiracPropertyNumLambdas - kDiracLambdaPreview - 1))
-					return 1;
+				// Lambda parameter
+				ret = parse_int(optarg, &opt->lambda,
+						kDiracPropertyNumLambdas - kDiracLambdaPreview - 1);
 				break;
 			case 'q':
-				if (parse_enum("Quality", optarg, &opt->quality,
-							kDiracPropertyNumQualities - kDiracQualityPreview - 1))
-					return 1;
+				// Quality parameter
+				ret = parse_int(optarg, &opt->quality,
+						kDiracPropertyNumQualities - kDiracQualityPreview - 1);
 				break;
 			case 'h':
-				print_usage(argv[0]);
+				// Help
+				print_usage();
 				return 2;
+			case '?':
+				// Bad option; error message was already printed
+				// by getopt
+				return 1;
 		}
+
+		// Option was good but the argument to the option wasn't
+		if (ret) {
+			if (idx < 0)
+				fprintf(stderr, "%s: invalid argument '%s' for '-%c'\n",
+						fname, optarg, c);
+			else
+				fprintf(stderr, "%s: invalid argument '%s' for '%s'\n",
+						fname, optarg, longopts[idx].name);
+			return 1;
+		}
+	}
+end_of_options:
+
+	switch (argc - optind) {
+		case 0:
+			fprintf(stderr, "%s: missing sample rate and channels\n", fname);
+			return 1;
+		case 1:
+			fprintf(stderr, "%s: missing channels\n", fname);
+			return 1;
+		case 2:
+			break;
+		default:
+			fprintf(stderr, "%s: too many arguments\n", fname);
+			return 1;
 	}
 
 	return 0;
