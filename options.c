@@ -173,7 +173,6 @@ int parse_options(int argc, char **argv, struct opts *opt)
 	};
 
 	// Process options
-	char *end;
 	for (;;) {
 		int idx = -1;
 		int c = getopt_long(argc, argv, "l:q:t:b:p:f:h", longopts, &idx);
@@ -229,7 +228,6 @@ int parse_options(int argc, char **argv, struct opts *opt)
 			return 1;
 		}
 	}
-end_of_options:
 
 	if (optind >= argc) {
 		fprintf(stderr, "%s: missing sample rate and channels\n", fname);
