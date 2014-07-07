@@ -16,12 +16,13 @@
  The read requests are *always* consecutive, ie. the routine will never have to supply data out
  of order.
  */
-long myReadData(float *chdata, long numFrames, void *userData)
+static long read_callback(float *chdata, long numFrames, void *userData)
 {
-	return 1;
+	// Pretend EOF
+	return 0;
 }
 
-int main (int argc, char **argv)
+int main(int argc, char **argv)
 {
 	// Set up default options
 	struct opts opt = {
@@ -58,7 +59,7 @@ int main (int argc, char **argv)
 
 	void *dirac = DiracCreateInterleaved(kDiracLambdaPreview + opt.lambda,
 			kDiracQualityPreview + opt.quality,
-			opt.channels, opt.rate, &myReadData, NULL);
+			opt.channels, opt.rate, &read_callback, NULL);
 	if (!dirac) {
 		fprintf(stderr, "%s: could not create DIRAC instance\n", argv[0]);
 		return 1;
