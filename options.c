@@ -195,7 +195,7 @@ int parse_options(int argc, char **argv, struct opts *opt)
 				break;
 			case 'f':
 				// Formant factor
-				ret = parse_ratio(optarg, &opt->formant, 0);
+				ret = parse_ratio(optarg, &opt->formant, 1);
 				break;
 			case 'l':
 				// Lambda parameter
