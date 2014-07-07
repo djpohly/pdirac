@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <getopt.h>
-#include <math.h>
 
 // stdbool and C99 are needed because Dirac.h uses "bool"
 #include <stdbool.h>
 #include <Dirac.h>
 
 #include "options.h"
+
+
+#define BUFFER_FRAMES 4096
 
 
 /*
@@ -24,11 +27,35 @@ static long read_callback(float *chdata, long numFrames, void *userData)
 
 static int do_processing(void *dirac, struct opts *opt)
 {
-	return 0;
+	int ret = 0;
+
+	// Allocate buffer to hold output audio data
+	float *buf = malloc(opt->channels * BUFFER_FRAMES * sizeof(*buf));
+	if (!buf) {
+		perror("malloc");
+		return 1;
+	}
+
+	// Do the processing
+	long n;
+	while ((n = DiracProcessInterleaved(buf, BUFFER_FRAMES, dirac)) > 0)
+		write(STDOUT_FILENO, buf, n * opt->channels * sizeof(*buf));
+	if (n < 0) {
+		fprintf(stderr, "DIRAC error: %s\n", DiracErrorToString(n));
+		ret = 1;
+	}
+
+	free(buf);
+	return ret;
 }
 
 int main(int argc, char **argv)
 {
+	if (isatty(STDOUT_FILENO)) {
+		fprintf(stderr, "Refusing to output to a terminal\n");
+		return 1;
+	}
+
 	// Set up default options
 	struct opts opt = {
 		.time = 1,
@@ -75,7 +102,6 @@ int main(int argc, char **argv)
 	DiracSetProperty(kDiracPropertyTimeFactor, opt.time, dirac);
 	DiracSetProperty(kDiracPropertyPitchFactor, opt.pitch, dirac);
 	DiracSetProperty(kDiracPropertyFormantFactor, opt.formant, dirac);
-	DiracPrintSettings(dirac);
 
 	int ret = do_processing(dirac, &opt);
 
