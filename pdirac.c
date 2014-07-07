@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <getopt.h>
 
@@ -21,8 +22,18 @@
  */
 static long read_callback(float *chdata, long numFrames, void *userData)
 {
-	// Pretend EOF
-	return 0;
+	struct opts *opt = userData;
+
+	long n = fread(chdata, sizeof(*chdata) * opt->channels, numFrames, stdin);
+	if (n < numFrames) {
+		if (ferror(stdin)) {
+			fprintf(stderr, "Error reading data\n");
+		} else {
+			memset(chdata + (n * opt->channels), 0,
+				(numFrames - n) * opt->channels * sizeof(*chdata));
+		}
+	}
+	return n;
 }
 
 static int do_processing(void *dirac, struct opts *opt)
@@ -36,10 +47,10 @@ static int do_processing(void *dirac, struct opts *opt)
 		return 1;
 	}
 
-	// Do the processing
+	// Process audio data and write to stdout
 	long n;
 	while ((n = DiracProcessInterleaved(buf, BUFFER_FRAMES, dirac)) > 0)
-		write(STDOUT_FILENO, buf, n * opt->channels * sizeof(*buf));
+		fwrite(buf, sizeof(*buf), n * opt->channels, stdout);
 	if (n < 0) {
 		fprintf(stderr, "DIRAC error: %s\n", DiracErrorToString(n));
 		ret = 1;
@@ -92,7 +103,7 @@ int main(int argc, char **argv)
 	// Create DIRAC instance
 	void *dirac = DiracCreateInterleaved(kDiracLambdaPreview + opt.lambda,
 			kDiracQualityPreview + opt.quality,
-			opt.channels, opt.rate, &read_callback, NULL);
+			opt.channels, opt.rate, &read_callback, &opt);
 	if (!dirac) {
 		fprintf(stderr, "%s: could not create DIRAC instance\n", argv[0]);
 		return 1;
