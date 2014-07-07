@@ -1,22 +1,19 @@
-BINS = pdirac ffdirac foo
+BINS = pdirac
 OBJS = options.o
 
-DIRAC_BINS = pdirac foo
-FFMPEG_BINS = ffdirac
+DIRAC_BINS = pdirac
 
 CFLAGS += -std=c99 -Werror -Wall -ggdb
 CXXFLAGS += -Werror -Wall -ggdb
 $(DIRAC_BINS): CFLAGS += -m32
 $(DIRAC_BINS): LDLIBS += -lDiracLE -lstdc++ -lm
-$(FFMPEG_BINS): LDLIBS += -lavcodec -lavformat -lavutil
 
 .PHONY: all install clean
 
 all: $(BINS)
 
 install: all
-	install -d $(DESTDIR)/usr/bin/ffdirac
-	install -t $(DESTDIR)/usr/bin/ffdirac $(BINS)
+	install -D pdirac $(DESTDIR)/usr/bin/pdirac
 
 clean:
 	$(RM) $(BINS) $(OBJS)
