@@ -62,11 +62,6 @@ static int do_processing(void *dirac, struct opts *opt)
 
 int main(int argc, char **argv)
 {
-	if (isatty(STDOUT_FILENO)) {
-		fprintf(stderr, "Refusing to output to a terminal\n");
-		return 1;
-	}
-
 	// Set up default options
 	struct opts opt = {
 		.time = 1,
@@ -85,6 +80,11 @@ int main(int argc, char **argv)
 		case 2:
 			// Special return value if -h/--help was given
 			return 0;
+	}
+
+	if (isatty(STDOUT_FILENO)) {
+		fprintf(stderr, "Refusing to output to a terminal\n");
+		return 1;
 	}
 
 	fprintf(stderr,
