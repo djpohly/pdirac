@@ -29,12 +29,19 @@ static void print_usage()
 		"  -h, --help              Show usage\n"
 		"\n"
 		"Factors may be expressed as a multiplier, a fraction, a ratio, or a\n"
-		"percentage change.  Pitch shifts may also be specified as a number of\n"
-		"semitones.  For example, the following are all equivalent:\n"
-		"  0.5   1/2   2:1   -50%%   -12s\n",
+		"percentage change.  Pitch and formant shifts may also be specified as a\n"
+		"number of equal-tempered semitones.  For example, the following are all\n"
+		"equivalent arguments for '-p':\n"
+		"  0.5   1/2   2:1   -50%%   -12s\n"
+		"\n"
+		"Example:\n"
+		"$ ffmpeg -i song.ogg -f f32le - | \\\n"
+		"      %s -b 128:120 44100 2 | \\\n"
+		"      ffmpeg -f f32le -ar 44100 -ac 2 -i - slower.flac\n",
 		fname,
 		kDiracPropertyNumLambdas - kDiracLambdaPreview - 1,
-		kDiracPropertyNumQualities - kDiracQualityPreview - 1);
+		kDiracPropertyNumQualities - kDiracQualityPreview - 1,
+		fname);
 }
 
 static int parse_int(char *str, long *out, long max)
