@@ -177,6 +177,8 @@ int parse_options(int argc, char **argv, struct opts *opt)
 
 		// Other options
 		{"help",	no_argument,	NULL,	'h'},
+
+		{0},
 	};
 
 	// Process options
