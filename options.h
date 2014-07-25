@@ -11,7 +11,6 @@ struct opts {
 	float rate;
 };
 
-void usage(char *fname);
 int parse_options(int argc, char **argv, struct opts *opt);
 
 #endif
